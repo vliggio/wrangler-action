@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import {
 	createGitHubDeployment,
+	createGitHubDeploymentAndJobSummary,
 	createJobSummary,
 	createPreviewGitHubDeploymentAndJobSummary,
 } from "./github";
@@ -11,6 +12,7 @@ import { mockGithubDeployments } from "../test/mocks";
 import { getTestConfig } from "../test/test-utils";
 import mockfs from "mock-fs";
 import { readFile } from "fs/promises";
+import * as core from "@actions/core";
 
 // Keep the real implementation available after getOctokit is mocked below.
 const actualGetOctokit = actionsGithub.getOctokit;
@@ -162,5 +164,85 @@ describe("github", () => {
 		} finally {
 			server.close();
 		}
+	});
+
+	describe("createGitHubDeploymentAndJobSummary", () => {
+		it("Skips when GITHUB_TOKEN is empty", async () => {
+			const testConfig = getTestConfig({
+				config: { GITHUB_TOKEN: "" },
+			});
+			const warnSpy = vi.spyOn(core, "warning");
+
+			await createGitHubDeploymentAndJobSummary(testConfig, {
+				version: 1,
+				type: "pages-deploy-detailed",
+				pages_project: "project",
+				environment: "production",
+				deployment_id: "123",
+				url: "https://example.com",
+				alias: "https://alias.example.com",
+				production_branch: "main",
+				deployment_trigger: {
+					metadata: { commit_hash: "abc12345678" },
+				},
+			});
+
+			// Should not warn (it just skips silently)
+			expect(warnSpy).not.toHaveBeenCalled();
+		});
+
+		it("Skips when production_branch is missing", async () => {
+			const testConfig = getTestConfig();
+			const warnSpy = vi.spyOn(core, "warning");
+
+			await createGitHubDeploymentAndJobSummary(testConfig, {
+				version: 1,
+				type: "pages-deploy-detailed",
+				pages_project: "project",
+				environment: "production",
+				deployment_id: "123",
+				url: "https://example.com",
+				alias: "https://alias.example.com",
+			});
+
+			expect(warnSpy).not.toHaveBeenCalled();
+		});
+
+		it("Skips when pages_project is null", async () => {
+			const testConfig = getTestConfig();
+			const warnSpy = vi.spyOn(core, "warning");
+
+			await createGitHubDeploymentAndJobSummary(testConfig, {
+				version: 1,
+				type: "pages-deploy-detailed",
+				pages_project: null,
+				environment: "production",
+				deployment_id: "123",
+				url: "https://example.com",
+				production_branch: "main",
+				deployment_trigger: {
+					metadata: { commit_hash: "abc12345678" },
+				},
+			});
+
+			expect(warnSpy).not.toHaveBeenCalled();
+		});
+
+		it("Skips when deployment_trigger is missing", async () => {
+			const testConfig = getTestConfig();
+			const warnSpy = vi.spyOn(core, "warning");
+
+			await createGitHubDeploymentAndJobSummary(testConfig, {
+				version: 1,
+				type: "pages-deploy-detailed",
+				pages_project: "project",
+				environment: "production",
+				deployment_id: "123",
+				url: "https://example.com",
+				production_branch: "main",
+			});
+
+			expect(warnSpy).not.toHaveBeenCalled();
+		});
 	});
 });
