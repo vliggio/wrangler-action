@@ -1,74 +1,16 @@
 # Wrangler GitHub Action
 
-Easy-to-use GitHub Action to use [Wrangler](https://developers.cloudflare.com/workers/cli-wrangler/). Makes deploying Workers a breeze.
+Easy-to-use GitHub Action to use [Wrangler](https://developers.cloudflare.com/workers/wrangler/). Makes deploying Workers a breeze.
 
-## Wrangler v3 Support
+## Migrating from v2
 
-The action now defaults to **Wrangler v4**. If you need to stay on Wrangler v3, you can pin the version explicitly:
-
-```yaml
-- uses: cloudflare/wrangler-action@v4
-  with:
-    apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-    wranglerVersion: "3.90.0"
-```
-
-## Workers Previews
-
-Workers Previews require Wrangler **4.136.3 or newer**. To run Wrangler directly from a pull request workflow:
-
-```yaml
-name: Preview
-
-on: [pull_request]
-
-jobs:
-  preview:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - run: npx wrangler preview --json
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-```
-
-To expose Preview outputs and create a GitHub Deployment and job summary, use `wrangler-action`:
-
-```yaml
-name: Preview
-
-on: [pull_request]
-
-permissions:
-  contents: read
-  deployments: write
-
-jobs:
-  preview:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Deploy preview
-        id: preview
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.136.3"
-          command: preview --name pr-${{ github.event.pull_request.number }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-```
-
-The action exposes `preview-url`, `preview-deployment-url`, `preview-name`, `preview-id`, and `preview-deployment-id` outputs. `deployment-url` is also set to the stable `preview-url`.
-
-## Big Changes in v3
+If you are upgrading from v2, note the following breaking changes:
 
 - Wrangler v1 is no longer supported.
-- Global API key & Email Auth no longer supported
-- Action version syntax is newly supported. This means e.g. `uses: cloudflare/wrangler-action@v4`, `uses: cloudflare/wrangler-action@v4.x`, and `uses: cloudflare/wrangler-action@v4.x.x` are all now valid syntax. Previously supported syntax e.g. `uses: cloudflare/wrangler-action@3.x.x` is no longer supported -- the prefix `v` is now necessary.
+- Global API key & Email Auth are no longer supported.
+- The action version must be prefixed with `v` (e.g. `uses: cloudflare/wrangler-action@v4`). The older `@3.x.x` syntax without the `v` prefix is no longer valid.
 
-[Refer to Changelog for more information](CHANGELOG.md).
+[Refer to the Changelog for more information](CHANGELOG.md).
 
 ## Usage
 
@@ -98,16 +40,18 @@ jobs:
 
 You'll need to configure Wrangler using GitHub's Secrets feature - go to "Settings -> Secrets" and add your Cloudflare API token (for help finding this, see the [Workers documentation](https://developers.cloudflare.com/workers/wrangler/ci-cd/#api-token)). Your API token is encrypted by GitHub, and the action won't print it into logs, so it should be safe!
 
-With your API token set as a secret for your repository, pass it to the action in the `with` block of your workflow. Below, I've set the secret name to `CLOUDFLARE_API_TOKEN`:
+With your API token set as a secret for your repository, pass it to the action in the `with` block of your workflow. In the example below, the secret name is set to `CLOUDFLARE_API_TOKEN`:
 
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     name: Deploy
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 ```
 
 ## Configuration
@@ -117,11 +61,13 @@ You can pass `wranglerVersion` to install a specific version of Wrangler from NP
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        wranglerVersion: "4"
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          wranglerVersion: "4"
 ```
 
 If you omit `wranglerVersion` and Wrangler is already installed in your environment, the action uses the existing installation. If Wrangler is not installed, the action installs a default version.
@@ -131,45 +77,84 @@ Optionally, you can also pass a `workingDirectory` key to the action. This will 
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        workingDirectory: "subfoldername"
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: "subfoldername"
 ```
 
-[Worker secrets](https://developers.cloudflare.com/workers/tooling/wrangler/secrets/) can optionally be passed in via `secrets` as a string of names separated by newlines. Each secret name must match the name of an environment variable specified in the `env` field. This creates or replaces the value for the Worker secret using the `wrangler secret put` command. It's also possible to specify worker environment using environment parameter.
+If you want to suppress Wrangler's command output in your workflow logs, set `quiet` to `true`:
 
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        environment: production
-        secrets: |
-          SECRET1
-          SECRET2
-      env:
-        SECRET1: ${{ secrets.SECRET1 }}
-        SECRET2: ${{ secrets.SECRET2 }}
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          quiet: true
 ```
 
-If you need to run additional shell commands before or after your command, you can specify them as input to `preCommands` (before `deploy`) or `postCommands` (after `deploy`). These can include additional `wrangler` commands (that is, `whoami`, `kv:key put`) or any other commands available inside the `wrangler-action` context.
+[Worker secrets](https://developers.cloudflare.com/workers/wrangler/commands/#secret) can optionally be passed in via `secrets` as a string of names separated by newlines. Each secret name must match the name of an environment variable specified in the `env` field. This creates or replaces the value for the Worker secret using the `wrangler secret put` command. You can also specify a Worker environment using the `environment` parameter.
 
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        preCommands: echo "*** pre command ***"
-        postCommands: |
-          echo "*** post commands ***"
-          wrangler kv:key put --binding=MY_KV key2 value2
-          echo "******"
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          environment: production
+          secrets: |
+            SECRET1
+            SECRET2
+        env:
+          SECRET1: ${{ secrets.SECRET1 }}
+          SECRET2: ${{ secrets.SECRET2 }}
+```
+
+Similarly, you can pass environment variables to bind to your Worker as plaintext `vars`. Each variable name must match the name of an environment variable declared in the `env` field of the workflow:
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          vars: |
+            APP_ENV
+            LOG_LEVEL
+        env:
+          APP_ENV: "production"
+          LOG_LEVEL: "info"
+```
+
+If you need to run additional shell commands before or after your command, you can specify them as input to `preCommands` (before `deploy`) or `postCommands` (after `deploy`). These can include additional `wrangler` commands (that is, `whoami`, `kv key put`) or any other commands available inside the `wrangler-action` context.
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          preCommands: echo "*** pre command ***"
+          postCommands: |
+            echo "*** post commands ***"
+            wrangler kv key put --binding=MY_KV key2 value2
+            echo "******"
 ```
 
 You can use the `command` option to do specific actions such as running `wrangler whoami` against your project:
@@ -177,11 +162,13 @@ You can use the `command` option to do specific actions such as running `wrangle
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        command: whoami
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: whoami
 ```
 
 You can also add a command that spans multiple lines:
@@ -189,13 +176,15 @@ You can also add a command that spans multiple lines:
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        command: |
-          pages project list
-          pages deploy .vercel/output/static --project-name=demo-actions --branch=test
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: |
+            pages project list
+            pages deploy .vercel/output/static --project-name=demo-actions --branch=test
 ```
 
 ## Use cases
@@ -226,7 +215,7 @@ Note that there are a number of possible events, like `push`, that can be used t
 
 ### Deploy your Pages site (production & preview)
 
-If you want to deploy your Pages project with GitHub Actions rather than the built-in continous integration (CI), then this is a great way to do it. Wrangler 2 will populate the commit message and branch for you. You only need to pass the project name. If a push to a non-production branch is done, it will deploy as a preview deployment:
+If you want to deploy your Pages project with GitHub Actions rather than the built-in continuous integration (CI), then this is a great way to do it. Wrangler will populate the commit message and branch for you. You only need to pass the project name. If a push to a non-production branch is done, it will deploy as a preview deployment:
 
 ```yaml
 on: [push]
@@ -308,7 +297,7 @@ To create a new version of your Worker that is not deployed immediately, use the
 jobs:
   upload:
     runs-on: ubuntu-latest
-    name: Deploy
+    name: Upload Worker Version
     steps:
       - uses: actions/checkout@v6
       - name: Upload Worker Version
@@ -318,6 +307,55 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: versions upload
 ```
+
+### Deploy a Workers Preview for pull requests
+
+Workers Previews require Wrangler **4.136.3 or newer**. To run Wrangler directly from a pull request workflow:
+
+```yaml
+name: Preview
+
+on: [pull_request]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: npx wrangler preview --json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+```
+
+To expose Preview outputs and create a GitHub Deployment and job summary, use `wrangler-action`:
+
+```yaml
+name: Preview
+
+on: [pull_request]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Deploy preview
+        id: preview
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.136.3"
+          command: preview --name pr-${{ github.event.pull_request.number }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+```
+
+The action exposes `preview-url`, `preview-deployment-url`, `preview-name`, `preview-id`, and `preview-deployment-id` outputs. `deployment-url` is also set to the stable `preview-url`.
 
 ## Advanced Usage
 
@@ -402,6 +440,19 @@ Resulting in:
 https://new-feature.<your_pages_site>.pages.dev
 ```
 
+For Pages deployments, two additional output variables are available (since Wrangler v3.81.0):
+
+- `pages-deployment-id` — the ID of the Pages deployment.
+- `pages-environment` — the environment of the Pages deployment (e.g. `production` or `preview`).
+
+```yaml
+- name: print pages deployment info
+  env:
+    DEPLOYMENT_ID: ${{ steps.deploy.outputs.pages-deployment-id }}
+    PAGES_ENV: ${{ steps.deploy.outputs.pages-environment }}
+  run: echo "Deployment $DEPLOYMENT_ID to $PAGES_ENV"
+```
+
 ### Using a different package manager
 
 By default, this action will detect which package manager to use, based on the presence of a `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, or `bun.lockb`/`bun.lock` file.
@@ -411,11 +462,13 @@ If you need to use a specific package manager for your application, you can set 
 ```yaml
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
-      uses: cloudflare/wrangler-action@v4
-      with:
-        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        packageManager: pnpm
+      - uses: actions/checkout@v6
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          packageManager: pnpm
 ```
 
 ## Troubleshooting
