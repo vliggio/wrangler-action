@@ -57,6 +57,7 @@ describe("isExactSemver", () => {
 describe("installWrangler", () => {
 	const testPackageManager = {
 		install: "npm i",
+		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
 		execNoInstall: "npx --no-install",
 	};
@@ -176,7 +177,8 @@ describe("installWrangler", () => {
 			};
 		});
 		vi.spyOn(exec, "exec").mockImplementation(async (cmd, args) => {
-			if (cmd === "npm i") expect(args).toStrictEqual(["wrangler@4"]);
+			if (cmd === "npm i")
+				expect(args).toStrictEqual(["wrangler@4", "--no-audit", "--no-fund"]);
 			return 0;
 		});
 		const resolvedVersion = await installWrangler(
@@ -209,7 +211,11 @@ describe("installWrangler", () => {
 		});
 		vi.spyOn(exec, "exec").mockImplementation(async (cmd, args) => {
 			if (cmd === "npm i") {
-				expect(args).toStrictEqual(["wrangler@latest"]);
+				expect(args).toStrictEqual([
+					"wrangler@latest",
+					"--no-audit",
+					"--no-fund",
+				]);
 			}
 			return 0;
 		});
@@ -328,6 +334,7 @@ describe("installWrangler", () => {
 describe("uploadSecrets", () => {
 	const testPackageManager = {
 		install: "npm i",
+		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
 		execNoInstall: "npx --no-install",
 	};
@@ -443,6 +450,7 @@ describe("uploadSecrets", () => {
 describe("main", () => {
 	const testPackageManager = {
 		install: "npm i",
+		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
 		execNoInstall: "npx --no-install",
 	};

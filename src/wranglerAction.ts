@@ -168,7 +168,7 @@ async function installWrangler(
 	try {
 		await exec(
 			packageManager.install,
-			[`wrangler@${config["WRANGLER_VERSION"]}`],
+			[`wrangler@${config["WRANGLER_VERSION"]}`, ...packageManager.installArgs],
 			{
 				cwd: config["workingDirectory"],
 				silent: config["QUIET_MODE"],
@@ -394,11 +394,7 @@ async function wranglerCommands(
 
 			// Execute the wrangler command
 			try {
-				await exec(
-					`${packageManager.exec} wrangler ${command}`,
-					args,
-					options,
-				);
+				await exec(`${packageManager.exec} wrangler ${command}`, args, options);
 			} catch (err: unknown) {
 				if (stdErr) {
 					error(config, stdErr);

@@ -3,6 +3,13 @@ import * as path from "node:path";
 
 export interface PackageManager {
 	install: string;
+	/**
+	 * Extra flags appended to the install command.
+	 *
+	 * Used to skip work that is pure overhead for a single-purpose CI install,
+	 * such as npm's blocking `audit` registry round-trip.
+	 */
+	installArgs: readonly string[];
 	exec: string;
 	execNoInstall: string;
 }
@@ -10,21 +17,25 @@ export interface PackageManager {
 const PACKAGE_MANAGERS = {
 	npm: {
 		install: "npm i",
+		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
 		execNoInstall: "npx --no-install",
 	},
 	yarn: {
 		install: "yarn add",
+		installArgs: [],
 		exec: "yarn",
 		execNoInstall: "yarn",
 	},
 	pnpm: {
 		install: "pnpm add",
+		installArgs: [],
 		exec: "pnpm exec",
 		execNoInstall: "pnpm exec",
 	},
 	bun: {
 		install: "bun i",
+		installArgs: [],
 		exec: "bunx",
 		execNoInstall: "bun run",
 	},
