@@ -1,0 +1,161 @@
+name: Wrangler Install Cache
+
+on:
+  pull_request:
+    branches:
+      - main
+  # Lets the cache round-trip be validated on a fork before opening a PR.
+  push:
+    branches:
+      - "vliggio/**"
+  workflow_dispatch:
+
+# Pinned to an exact version so the cache key is deterministic: the action
+# only calls `npm view` to resolve a version when the input is a range.
+env:
+  WRANGLER_VERSION: "4.86.0"
+  FIXTURE: ./src/test/fixtures/only-build
+
+permissions:
+  contents: read
+  # Needed to delete a stale entry so the "cold" job is genuinely cold.
+  actions: write
+
+jobs:
+  cold-cache:
+    name: Cold cache installs and saves
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install modules and build
+        run: npm ci && npm run build
+
+      - name: Drop any existing entry for this key
+        # Without this the job is only cold the first time the workflow runs on
+        # a branch. Fails harmlessly on fork PRs, where the token is read-only.
+        run: gh cache delete "wrangler-action-v1-linux-x64-npm-${WRANGLER_VERSION}" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Run the action against a cold cache
+        uses: ./
+        with:
+          workingDirectory: ${{ env.FIXTURE }}
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          command: deploy --dry-run
+
+      - name: Wrangler landed in an action-owned directory
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/wrangler-action/npm-$WRANGLER_VERSION"
+          test -x "$install_dir/node_modules/.bin/wrangler"
+          echo "Installed version: $("$install_dir/node_modules/.bin/wrangler" --version)"
+
+      - name: The user's project was left untouched
+        run: |
+          set -euo pipefail
+          test ! -d "$FIXTURE/node_modules"
+          # Catches the action writing wrangler into package.json or a lockfile.
+          git diff --exit-code -- "$FIXTURE"
+          test -z "$(git status --porcelain -- "$FIXTURE")"
+
+  warm-cache:
+    name: Warm cache restores
+    needs: cold-cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install modules and build
+        run: npm ci && npm run build
+
+      - name: The cold job saved an entry under the key the action looks for
+        id: probe
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ runner.temp }}/wrangler-action/npm-${{ env.WRANGLER_VERSION }}
+          key: wrangler-action-v1-linux-x64-npm-${{ env.WRANGLER_VERSION }}
+          # Assert the entry exists without downloading it, so the action below
+          # performs the real restore.
+          lookup-only: true
+
+      - name: Fail if the cache entry is missing
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.probe.outputs.cache-hit }}" != "true" ]; then
+            echo "::error::No cache entry for wrangler-action-v1-linux-x64-npm-$WRANGLER_VERSION"
+            exit 1
+          fi
+
+      - name: Nothing is on disk yet on this fresh runner
+        run: test ! -d "$RUNNER_TEMP/wrangler-action/npm-$WRANGLER_VERSION"
+
+      - name: Run the action against a warm cache
+        uses: ./
+        with:
+          workingDirectory: ${{ env.FIXTURE }}
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          command: deploy --dry-run
+
+      - name: Wrangler is present and runnable after the restore
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/wrangler-action/npm-$WRANGLER_VERSION"
+          test -x "$install_dir/node_modules/.bin/wrangler"
+          restored="$("$install_dir/node_modules/.bin/wrangler" --version | tail -1)"
+          echo "Restored version: $restored"
+          case "$restored" in
+            *"$WRANGLER_VERSION"*) ;;
+            *) echo "::error::Expected $WRANGLER_VERSION, got $restored"; exit 1 ;;
+          esac
+
+      - name: The user's project was left untouched
+        run: |
+          set -euo pipefail
+          test ! -d "$FIXTURE/node_modules"
+          test -z "$(git status --porcelain -- "$FIXTURE")"
+
+  cache-disabled:
+    name: cache:false keeps the old install path
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install modules and build
+        run: npm ci && npm run build
+
+      - name: Run the action with caching turned off
+        uses: ./
+        with:
+          workingDirectory: ${{ env.FIXTURE }}
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          cache: false
+          command: deploy --dry-run
+
+      - name: Wrangler was installed into the project, as it always was
+        run: |
+          set -euo pipefail
+          test ! -d "$RUNNER_TEMP/wrangler-action/npm-$WRANGLER_VERSION"
+          test -x "$FIXTURE/node_modules/.bin/wrangler"
