@@ -369,6 +369,34 @@ jobs:
         packageManager: pnpm
 ```
 
+### Caching the Wrangler install
+
+When installing with npm, this action installs Wrangler into a directory it owns
+and caches it between runs, keyed on the exact resolved Wrangler version. Your
+project's `package.json`, lockfile and `node_modules` are left untouched.
+
+Caching is enabled by default. Set the `cache` input to `false` to turn it off:
+
+```yaml
+jobs:
+  deploy:
+    steps:
+      uses: cloudflare/wrangler-action@v4
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        cache: false
+```
+
+Notes:
+
+- The cache is keyed on the exact version, so a floating `wranglerVersion` such
+  as `4` still picks up new releases rather than being pinned to whatever was
+  cached first.
+- Caching does not apply when the package manager is yarn, pnpm or bun, or when
+  Wrangler is already installed in your project.
+- A cache miss, an unavailable cache service, or a run that cannot write to the
+  cache (such as a pull request from a fork) falls back to installing normally.
+
 ## Troubleshooting
 
 ### "I just started using Workers/Wrangler and I don't know what this is!"

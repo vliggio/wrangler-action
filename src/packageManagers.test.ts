@@ -14,6 +14,7 @@ describe("getPackageManager", () => {
 			    "--no-audit",
 			    "--no-fund",
 			  ],
+			  "name": "npm",
 			}
 		`);
 
@@ -25,6 +26,7 @@ describe("getPackageManager", () => {
 			  "execNoInstall": "yarn",
 			  "install": "yarn add",
 			  "installArgs": [],
+			  "name": "yarn",
 			}
 		`);
 
@@ -36,6 +38,7 @@ describe("getPackageManager", () => {
 			  "execNoInstall": "pnpm exec",
 			  "install": "pnpm add",
 			  "installArgs": [],
+			  "name": "pnpm",
 			}
 		`);
 
@@ -47,6 +50,7 @@ describe("getPackageManager", () => {
 			  "execNoInstall": "bun run",
 			  "install": "bun i",
 			  "installArgs": [],
+			  "name": "bun",
 			}
 		`);
 	});
@@ -62,6 +66,7 @@ describe("getPackageManager", () => {
 				    "--no-audit",
 				    "--no-fund",
 				  ],
+				  "name": "npm",
 				}
 			`);
 	});
@@ -75,6 +80,7 @@ describe("getPackageManager", () => {
 			  "execNoInstall": "yarn",
 			  "install": "yarn add",
 			  "installArgs": [],
+			  "name": "yarn",
 			}
 		`);
 	});
@@ -88,6 +94,7 @@ describe("getPackageManager", () => {
 			  "execNoInstall": "pnpm exec",
 			  "install": "pnpm add",
 			  "installArgs": [],
+			  "name": "pnpm",
 			}
 		`);
 	});
@@ -100,6 +107,7 @@ describe("getPackageManager", () => {
 				  "execNoInstall": "bun run",
 				  "install": "bun i",
 				  "installArgs": [],
+				  "name": "bun",
 				}
 			`);
 	});
@@ -116,6 +124,7 @@ describe("getPackageManager", () => {
 			    "--no-audit",
 			    "--no-fund",
 			  ],
+			  "name": "npm",
 			}
 		`);
 	});

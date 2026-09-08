@@ -56,6 +56,7 @@ describe("isExactSemver", () => {
 
 describe("installWrangler", () => {
 	const testPackageManager = {
+		name: "npm",
 		install: "npm i",
 		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
@@ -88,7 +89,7 @@ describe("installWrangler", () => {
 		expect(infoSpy).toBeCalledWith(
 			"✅ No wrangler version specified, using pre-installed wrangler version 3.48.0",
 		);
-		expect(resolvedVersion).toBe("3.48.0");
+		expect(resolvedVersion.version).toBe("3.48.0");
 	});
 
 	it("Does nothing if the wrangler version specified is the same as the one installed", async () => {
@@ -111,7 +112,7 @@ describe("installWrangler", () => {
 			testPackageManager,
 		);
 		expect(infoSpy).toBeCalledWith("✅ Using Wrangler 3.48.0");
-		expect(resolvedVersion).toBe("3.48.0");
+		expect(resolvedVersion.version).toBe("3.48.0");
 	});
 
 	it("Should install wrangler if the version specified is not already available", async () => {
@@ -148,7 +149,7 @@ describe("installWrangler", () => {
 			testPackageManager,
 		);
 		expect(infoSpy).toBeCalledWith("✅ Wrangler installed");
-		expect(resolvedVersion).toBe("3.48.0");
+		expect(resolvedVersion.version).toBe("3.48.0");
 	});
 
 	it("Should install and resolve version when a range like '4' is specified", async () => {
@@ -185,7 +186,7 @@ describe("installWrangler", () => {
 			testConfig,
 			testPackageManager,
 		);
-		expect(resolvedVersion).toBe("4.18.1");
+		expect(resolvedVersion.version).toBe("4.18.1");
 	});
 
 	it("Should install and resolve version when 'latest' is specified", async () => {
@@ -223,7 +224,7 @@ describe("installWrangler", () => {
 			testConfig,
 			testPackageManager,
 		);
-		expect(resolvedVersion).toBe("4.20.0");
+		expect(resolvedVersion.version).toBe("4.20.0");
 	});
 
 	it("Throws if version cannot be resolved after install", async () => {
@@ -270,7 +271,7 @@ describe("installWrangler", () => {
 			testConfig,
 			testPackageManager,
 		);
-		expect(resolvedVersion).toBe("3.48.0");
+		expect(resolvedVersion.version).toBe("3.48.0");
 	});
 
 	it("Skips reinstall when range is satisfied by pre-installed version", async () => {
@@ -294,7 +295,7 @@ describe("installWrangler", () => {
 			testPackageManager,
 		);
 		expect(infoSpy).toBeCalledWith("✅ Using Wrangler 4.18.1");
-		expect(resolvedVersion).toBe("4.18.1");
+		expect(resolvedVersion.version).toBe("4.18.1");
 		expect(execSpy).not.toHaveBeenCalled();
 	});
 
@@ -327,12 +328,13 @@ describe("installWrangler", () => {
 			testConfig,
 			testPackageManager,
 		);
-		expect(resolvedVersion).toBe("4.18.1");
+		expect(resolvedVersion.version).toBe("4.18.1");
 	});
 });
 
 describe("uploadSecrets", () => {
 	const testPackageManager = {
+		name: "npm",
 		install: "npm i",
 		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
@@ -349,9 +351,8 @@ describe("uploadSecrets", () => {
 			},
 		});
 		vi.spyOn(exec, "exec").mockImplementation(async (cmd, args) => {
-			expect(cmd).toBe("npx");
+			expect(cmd).toBe("npx wrangler");
 			expect(args).toStrictEqual([
-				"wrangler",
 				"secret",
 				"put",
 				"FAKE_SECRET",
@@ -363,7 +364,7 @@ describe("uploadSecrets", () => {
 		const startGroup = vi.spyOn(core, "startGroup");
 		const endGroup = vi.spyOn(core, "endGroup");
 
-		await uploadSecrets(testConfig, testPackageManager);
+		await uploadSecrets(testConfig, "npx wrangler");
 		expect(startGroup).toBeCalledWith("🔑 Uploading secrets...");
 		expect(endGroup).toHaveBeenCalledOnce();
 	});
@@ -378,14 +379,14 @@ describe("uploadSecrets", () => {
 			},
 		});
 		vi.spyOn(exec, "exec").mockImplementation(async (cmd, args) => {
-			expect(cmd).toBe("npx");
-			expect(args).toStrictEqual(["wrangler", "secret:bulk", "--env", "dev"]);
+			expect(cmd).toBe("npx wrangler");
+			expect(args).toStrictEqual(["secret:bulk", "--env", "dev"]);
 			return 0;
 		});
 		const startGroup = vi.spyOn(core, "startGroup");
 		const endGroup = vi.spyOn(core, "endGroup");
 
-		await uploadSecrets(testConfig, testPackageManager);
+		await uploadSecrets(testConfig, "npx wrangler");
 		expect(startGroup).toBeCalledWith("🔑 Uploading secrets...");
 		expect(endGroup).toHaveBeenCalledOnce();
 	});
@@ -400,20 +401,14 @@ describe("uploadSecrets", () => {
 			},
 		});
 		vi.spyOn(exec, "exec").mockImplementation(async (cmd, args) => {
-			expect(cmd).toBe("npx");
-			expect(args).toStrictEqual([
-				"wrangler",
-				"secret",
-				"bulk",
-				"--env",
-				"dev",
-			]);
+			expect(cmd).toBe("npx wrangler");
+			expect(args).toStrictEqual(["secret", "bulk", "--env", "dev"]);
 			return 0;
 		});
 		const startGroup = vi.spyOn(core, "startGroup");
 		const endGroup = vi.spyOn(core, "endGroup");
 
-		await uploadSecrets(testConfig, testPackageManager);
+		await uploadSecrets(testConfig, "npx wrangler");
 		expect(startGroup).toBeCalledWith("🔑 Uploading secrets...");
 		expect(endGroup).toHaveBeenCalledOnce();
 	});
@@ -428,20 +423,14 @@ describe("uploadSecrets", () => {
 			},
 		});
 		vi.spyOn(exec, "exec").mockImplementation(async (cmd, args) => {
-			expect(cmd).toBe("npx");
-			expect(args).toStrictEqual([
-				"wrangler",
-				"secret",
-				"bulk",
-				"--env",
-				"dev",
-			]);
+			expect(cmd).toBe("npx wrangler");
+			expect(args).toStrictEqual(["secret", "bulk", "--env", "dev"]);
 			return 0;
 		});
 		const startGroup = vi.spyOn(core, "startGroup");
 		const endGroup = vi.spyOn(core, "endGroup");
 
-		await uploadSecrets(testConfig, testPackageManager);
+		await uploadSecrets(testConfig, "npx wrangler");
 		expect(startGroup).toBeCalledWith("🔑 Uploading secrets...");
 		expect(endGroup).toHaveBeenCalledOnce();
 	});
@@ -449,6 +438,7 @@ describe("uploadSecrets", () => {
 
 describe("main", () => {
 	const testPackageManager = {
+		name: "npm",
 		install: "npm i",
 		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",

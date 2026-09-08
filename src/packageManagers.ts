@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import * as path from "node:path";
 
 export interface PackageManager {
+	name: string;
 	install: string;
 	/**
 	 * Extra flags appended to the install command.
@@ -16,24 +17,28 @@ export interface PackageManager {
 
 const PACKAGE_MANAGERS = {
 	npm: {
+		name: "npm",
 		install: "npm i",
 		installArgs: ["--no-audit", "--no-fund"],
 		exec: "npx",
 		execNoInstall: "npx --no-install",
 	},
 	yarn: {
+		name: "yarn",
 		install: "yarn add",
 		installArgs: [],
 		exec: "yarn",
 		execNoInstall: "yarn",
 	},
 	pnpm: {
+		name: "pnpm",
 		install: "pnpm add",
 		installArgs: [],
 		exec: "pnpm exec",
 		execNoInstall: "pnpm exec",
 	},
 	bun: {
+		name: "bun",
 		install: "bun i",
 		installArgs: [],
 		exec: "bunx",

@@ -20,6 +20,7 @@ export function getTestConfig({
 			PACKAGE_MANAGER: "npm",
 			WRANGLER_OUTPUT_DIR: "/tmp/wranglerArtifacts",
 			GITHUB_TOKEN: "xxxxyy23213123132131",
+			CACHE_ENABLED: false,
 		} as const satisfies WranglerActionConfig,
 		config,
 	);
