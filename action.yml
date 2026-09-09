@@ -48,9 +48,9 @@ inputs:
     description: "GitHub Token"
     required: false
   cache:
-    description: "Cache the Wrangler install between runs, keyed on the exact resolved Wrangler version. Defaults to `true`. Only applies when installing with npm."
+    description: "Cache the Wrangler install between runs, keyed on the exact resolved Wrangler version. Defaults to `false`. Worth enabling if you deploy often enough to keep the cache warm; a cold run pays an extra ~3s to save the cache. Only applies when installing with npm."
     required: false
-    default: "true"
+    default: "false"
 outputs:
   command-output:
     description: "The output of the Wrangler command (comes from stdout)"

@@ -50,6 +50,7 @@ jobs:
         with:
           workingDirectory: ${{ env.FIXTURE }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          cache: true
           command: deploy --dry-run
 
       - name: Wrangler landed in an action-owned directory
@@ -110,6 +111,7 @@ jobs:
         with:
           workingDirectory: ${{ env.FIXTURE }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          cache: true
           command: deploy --dry-run
 
       - name: Wrangler is present and runnable after the restore
@@ -130,8 +132,8 @@ jobs:
           test ! -d "$FIXTURE/node_modules"
           test -z "$(git status --porcelain -- "$FIXTURE")"
 
-  cache-disabled:
-    name: cache:false keeps the old install path
+  cache-default:
+    name: Default (no cache input) keeps the old install path
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -146,12 +148,11 @@ jobs:
       - name: Install modules and build
         run: npm ci && npm run build
 
-      - name: Run the action with caching turned off
+      - name: Run the action without opting in to caching
         uses: ./
         with:
           workingDirectory: ${{ env.FIXTURE }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
-          cache: false
           command: deploy --dry-run
 
       - name: Wrangler was installed into the project, as it always was

@@ -29,7 +29,7 @@ const config: WranglerActionConfig = {
 	GITHUB_TOKEN: getInput("gitHubToken", { required: false }),
 	// getBooleanInput throws on an empty value, which happens when a workflow
 	// pins an older action.yml that predates this input.
-	CACHE_ENABLED: getInput("cache") ? getBooleanInput("cache") : true,
+	CACHE_ENABLED: getInput("cache") ? getBooleanInput("cache") : false,
 } as const;
 
 const packageManager = getPackageManager(config.PACKAGE_MANAGER, {

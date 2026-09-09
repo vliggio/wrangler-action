@@ -371,11 +371,10 @@ jobs:
 
 ### Caching the Wrangler install
 
-When installing with npm, this action installs Wrangler into a directory it owns
-and caches it between runs, keyed on the exact resolved Wrangler version. Your
-project's `package.json`, lockfile and `node_modules` are left untouched.
-
-Caching is enabled by default. Set the `cache` input to `false` to turn it off:
+Set the `cache` input to `true` to cache the Wrangler install between runs. When
+enabled, and when installing with npm, Wrangler is installed into a directory
+owned by the action and cached, keyed on the exact resolved Wrangler version.
+Your project's `package.json`, lockfile and `node_modules` are left untouched.
 
 ```yaml
 jobs:
@@ -384,8 +383,23 @@ jobs:
       uses: cloudflare/wrangler-action@v4
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        cache: false
+        cache: true
 ```
+
+Caching is off by default because it is not a free win. Measured on a
+`ubuntu-latest` runner deploying a small Worker:
+
+| Run                  | Install step |
+| -------------------- | ------------ |
+| Without caching      | 10s          |
+| Cached, cold (saves) | 12s          |
+| Cached, warm         | 5s           |
+
+A warm run is roughly twice as fast, but a cold run is about 2s slower because
+saving the ~52MB cache entry is on the critical path. GitHub evicts cache
+entries after 7 days without a hit, so if you deploy less often than that you
+will pay the cold cost every time and never collect the saving. Enable it if you
+deploy regularly; leave it off if you deploy occasionally.
 
 Notes:
 
