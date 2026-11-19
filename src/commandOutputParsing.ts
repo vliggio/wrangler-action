@@ -12,6 +12,35 @@ import {
 	createPreviewGitHubDeploymentAndJobSummary,
 } from "./service/github";
 
+/**
+ * Sanitizes a URL by stripping any trailing text after whitespace (e.g. " (custom domain)")
+ * and prepending "https://" if no protocol is present.
+ *
+ * Wrangler leaves these fields unset in some cases, so an empty or missing value
+ * is passed through untouched rather than turned into a bare "https://".
+ */
+export function sanitizeUrl(url: string): string;
+export function sanitizeUrl(url: string | undefined): string | undefined;
+export function sanitizeUrl(url: string | undefined): string | undefined {
+	if (!url) {
+		return url;
+	}
+
+	// Strip text after first whitespace
+	let sanitized = url.split(/\s/)[0];
+
+	if (!sanitized) {
+		return url;
+	}
+
+	// Prepend https:// if no protocol is present
+	if (!/^https?:\/\//.test(sanitized)) {
+		sanitized = `https://${sanitized}`;
+	}
+
+	return sanitized;
+}
+
 // fallback to trying to extract the deployment-url and pages-deployment-alias-url from stdout for wranglerVersion < 3.81.0
 function extractDeploymentUrlsFromStdout(stdOut: string): {
 	deploymentUrl?: string;
@@ -39,10 +68,13 @@ async function handlePagesDeployOutputEntry(
 	config: WranglerActionConfig,
 	pagesDeployOutputEntry: OutputEntryPagesDeployment,
 ) {
-	setOutput("deployment-url", pagesDeployOutputEntry.url);
+	setOutput("deployment-url", sanitizeUrl(pagesDeployOutputEntry.url));
 	// DEPRECATED: deployment-alias-url in favour of pages-deployment-alias, drop in next wrangler-action major version change
-	setOutput("deployment-alias-url", pagesDeployOutputEntry.alias);
-	setOutput("pages-deployment-alias-url", pagesDeployOutputEntry.alias);
+	setOutput("deployment-alias-url", sanitizeUrl(pagesDeployOutputEntry.alias));
+	setOutput(
+		"pages-deployment-alias-url",
+		sanitizeUrl(pagesDeployOutputEntry.alias),
+	);
 	setOutput("pages-deployment-id", pagesDeployOutputEntry.deployment_id);
 	setOutput("pages-environment", pagesDeployOutputEntry.environment);
 
@@ -93,7 +125,10 @@ function handleWranglerDeployOutputEntry(
 		);
 	}
 
-	setOutput("deployment-url", wranglerDeployOutputEntry.targets[0]);
+	setOutput(
+		"deployment-url",
+		sanitizeUrl(wranglerDeployOutputEntry.targets[0]),
+	);
 }
 
 /**
